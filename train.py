@@ -54,8 +54,8 @@ class Discuz():
 		img = cv2.imread(fname)
 		# 获取图片大小
 		width, heigth, _ = img.shape
-		print("图像宽:%s px" % width)
-		print("图像高:%s px" % heigth)
+		print("imageWidth:%s px" % width)
+		print("imageHeight:%s px" % heigth)
  
 		if show == True:
 			# plt.imshow(img)
@@ -168,7 +168,7 @@ class Discuz():
 			vector:向量
 		"""
 		if len(text) > 4:
-			raise ValueError('验证码最长4个字符')
+			raise ValueError('Over4Letters')
  
 		vector = np.zeros(4 * self.char_set_len)
 		def char2pos(c):
@@ -225,7 +225,7 @@ class Discuz():
 		"""
 		# 卷积的input: 一个Tensor。数据维度是四维[batch, in_height, in_width, in_channels]
 		# 具体含义是[batch大小, 图像高度, 图像宽度, 图像通道数]
-		# 因为是灰度图，所以是单通道的[?, 100, 30, 1]
+		# 因为是灰度图，所以是单通道的
 		x = tf.reshape(self.X, shape=[-1, self.heigth, self.width, 1])
 		# 卷积的filter:一个Tensor。数据维度是四维[filter_height, filter_width, in_channels, out_channels]
 		# 具体含义是[卷积核的高度, 卷积核的宽度, 图像通道数, 卷积核个数]
@@ -247,16 +247,15 @@ class Discuz():
 		#    (输出图像宽度*输出图像高度)(卷积核高度*卷积核宽度+1)*卷积核数量(100*30)(3*3+1)*32=100*30*320=960000个
  
 		# bias_add:将偏差项bias加到value上。这个操作可以看做是tf.add的一个特例，其中bias是必须的一维。
-		# 该API支持广播形式，因此value可以是任何维度。但是，该API又不像tf.add，可以让bias的维度和value的最后一维不同，
+		
 		conv1 = tf.nn.relu(tf.nn.bias_add(tf.nn.conv2d(x, w_c1, strides=[1, 1, 1, 1], padding='SAME'), b_c1))
 		# max_pool池化层输入：
 		#	ksize:池化窗口的大小，取一个四维向量，一般是[1, height, width, 1]
 		#		因为我们不想在batch和channels上做池化，所以这两个维度设为了1
-		#	strides:和卷积类似，窗口在每一个维度上滑动的步长，一般也是[1, stride,stride, 1]
-		#	padding:和卷积类似，可以取'VALID' 或者'SAME'
+		
 		# max_pool池化层输出：
 		#	返回一个Tensor，类型不变，shape仍然是[batch, out_width, out_height, in_channels]这种形式
-		# 	[?, 50, 15, 32]
+		
 		# 学习参数:
 		#	2*32
 		# 连接个数:
@@ -266,31 +265,31 @@ class Discuz():
 		# conv1 = tf.nn.dropout(conv1, self.keep_prob)
 		w_c2 = tf.Variable(w_alpha*tf.random_normal([3, 3, 32, 64]))
 		b_c2 = tf.Variable(b_alpha*tf.random_normal([64]))
-		# [?, 50, 15, 64]
+		
 		conv2 = tf.nn.relu(tf.nn.bias_add(tf.nn.conv2d(conv1, w_c2, strides=[1, 1, 1, 1], padding='SAME'), b_c2))
-		# [?, 25, 8, 64]
+		
 		conv2 = tf.nn.max_pool(conv2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 		#conv2 = tf.nn.dropout(conv2, self.keep_prob)
 		w_c3 = tf.Variable(w_alpha*tf.random_normal([3, 3, 64, 64]))
 		b_c3 = tf.Variable(b_alpha*tf.random_normal([64]))
-		# [?, 25, 8, 64]
+		
 		conv3 = tf.nn.relu(tf.nn.bias_add(tf.nn.conv2d(conv2, w_c3, strides=[1, 1, 1, 1], padding='SAME'), b_c3))
-		# [?, 13, 4, 64]
+		
 		conv3 = tf.nn.max_pool(conv3, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 		#conv3 = tf.nn.dropout(conv3, self.keep_prob)
 		# [3328, 1024]
 		w_d = tf.Variable(w_alpha*tf.random_normal([4*13*64, 1024]))
 		b_d = tf.Variable(b_alpha*tf.random_normal([1024]))
-		# [?, 3328]
+		
 		dense = tf.reshape(conv3, [-1, w_d.get_shape().as_list()[0]])
-		# [?, 1024]
+		
 		dense = tf.nn.relu(tf.add(tf.matmul(dense, w_d), b_d))
 		dense = tf.nn.dropout(dense, self.keep_prob)
 		# [1024, 63*4=252]
 		w_out = tf.Variable(w_alpha*tf.random_normal([1024, self.max_captcha*self.char_set_len]))
  
 		b_out = tf.Variable(b_alpha*tf.random_normal([self.max_captcha*self.char_set_len]))
-		# [?, 252]
+		
 		out = tf.add(tf.matmul(dense, w_out), b_out)
 		# out = tf.nn.softmax(out)
 		return out
@@ -334,7 +333,7 @@ class Discuz():
 				if i % 10 == 0:
 					batch_x_test, batch_y_test = self.get_next_batch(False, 100)
 					summary, acc = sess.run([merged, accuracy], feed_dict={self.X: batch_x_test, self.Y: batch_y_test, self.keep_prob: 1})
-					print('迭代第%d次 accuracy:%f' % (i+1, acc))
+					print('dthRecursive accuracy:%f' % (i+1, acc))
 					test_writer.add_summary(summary, i)
  
 					# 如果准确率大于85%，则保存模型并退出。
@@ -347,7 +346,7 @@ class Discuz():
 				else:
 					batch_x, batch_y = self.get_next_batch(True, 100)
 					loss_value, _ = sess.run([loss, optimizer], feed_dict={self.X: batch_x, self.Y: batch_y, self.keep_prob: 1})
-					print('迭代第%d次 loss:%f' % (i+1, loss_value))
+					print('dthRecursive loss:%f' % (i+1, loss_value))
 					curve = sess.run(merged, feed_dict={self.X: batch_x_test, self.Y: batch_y_test, self.keep_prob: 1})
 					train_writer.add_summary(curve, i)
  
