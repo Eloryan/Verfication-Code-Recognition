@@ -28,7 +28,7 @@ def crack_captcha(captcha_image, captcha_label):
 					vector[i*dz.char_set_len + n] = 1
 					i += 1
 			prediction_text = dz.vec2text(vector)
-			print("正确: {}  预测: {}".format(dz.vec2text(label), prediction_text))
+			print("True: {}  Predict: {}".format(dz.vec2text(label), prediction_text))
 
 if __name__ == '__main__':
 	dz = train.Discuz()
